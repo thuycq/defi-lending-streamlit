@@ -53,7 +53,10 @@ def get_config():
     private_key = os.getenv("PRIVATE_KEY")
 
     if not rpc_url:
-        raise ValueError("Missing SEPOLIA_RPC_URL in .env")
+        raise ValueError(
+            "Missing SEPOLIA_RPC_URL. Set it in .env for local development "
+            "or in Streamlit Cloud Secrets for deployment."
+        )
 
     addresses = load_json(CONTRACT_ADDRESSES_PATH)
     contracts = addresses.get("contracts", {})
