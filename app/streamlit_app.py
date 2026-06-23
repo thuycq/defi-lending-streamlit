@@ -13,7 +13,11 @@ try:
         repay_mock_usd,
         withdraw_collateral,
     )
-    from app.metamask_component import render_metamask_connect
+    from app.metamask_component import (
+        render_metamask_connect,
+        render_metamask_deposit,
+        render_metamask_lending_actions,
+    )
 except ModuleNotFoundError:
     from blockchain import (
         read_basic_status,
@@ -25,7 +29,11 @@ except ModuleNotFoundError:
         repay_mock_usd,
         withdraw_collateral,
     )
-    from metamask_component import render_metamask_connect
+    from metamask_component import (
+        render_metamask_connect,
+        render_metamask_deposit,
+        render_metamask_lending_actions,
+    )
 
 SEPOLIA_ETHERSCAN_BASE = "https://sepolia.etherscan.io"
 
@@ -276,9 +284,14 @@ try:
             f"{format_decimal(position['current_ltv_percent'], 2)} %",
         )
 
+    if position["debt_mock_usd"] == 0:
+        health_factor_display = "∞ / No debt"
+    else:
+        health_factor_display = format_decimal(position["health_factor"], 4)
+
     st.metric(
         "Health Factor",
-        format_decimal(position["health_factor"], 4),
+        health_factor_display,
     )
 
     if loan_status == "Safe":
@@ -291,10 +304,74 @@ try:
         st.info("Ví hiện chưa có dư nợ.")
 
     st.divider()
+    st.subheader("5B. User actions with MetaMask")
+
+    st.caption(
+        "Các giao dịch bên dưới được ký trực tiếp bằng MetaMask của người dùng. "
+        "Private key không nằm trên Streamlit Cloud."
+    )
+
+    if not metamask_connected:
+        st.warning("Vui lòng kết nối MetaMask trước khi thực hiện giao dịch.")
+    elif not metamask_on_sepolia:
+        st.warning("Vui lòng chuyển MetaMask sang Sepolia trước khi thực hiện giao dịch.")
+    else:
+        st.markdown("### Deposit collateral")
+
+        deposit_result = render_metamask_deposit(
+            wallet_address=metamask_wallet,
+            chain_id=metamask_chain_id,
+        )
+
+        if deposit_result["deposit_status"] == "submitted":
+            st.success(
+                "Deposit transaction submitted. "
+                "Chờ vài giây rồi bấm Refresh data để cập nhật collateral."
+            )
+
+        if deposit_result["deposit_tx_hash"]:
+            st.markdown(
+                f"[View deposit transaction on Sepolia Etherscan]"
+                f"(https://sepolia.etherscan.io/tx/{deposit_result['deposit_tx_hash']})"
+            )
+
+        if deposit_result["deposit_status"] == "error":
+            st.error(deposit_result["deposit_error"])
+
+        st.markdown("### Borrow, Repay, and Withdraw")
+
+        lending_actions_result = render_metamask_lending_actions(
+            wallet_address=metamask_wallet,
+            chain_id=metamask_chain_id,
+        )
+
+        if lending_actions_result["approve_tx_hash"]:
+            st.markdown(
+                f"[View approve transaction on Sepolia Etherscan]"
+                f"(https://sepolia.etherscan.io/tx/{lending_actions_result['approve_tx_hash']})"
+            )
+
+        if lending_actions_result["last_status"] == "submitted":
+            action_label = lending_actions_result["last_action"].capitalize()
+
+            st.success(
+                f"{action_label} transaction submitted. "
+                "Chờ vài giây rồi bấm Refresh data để cập nhật dashboard."
+            )
+
+        if lending_actions_result["last_tx_hash"]:
+            st.markdown(
+                f"[View {lending_actions_result['last_action']} transaction on Sepolia Etherscan]"
+                f"(https://sepolia.etherscan.io/tx/{lending_actions_result['last_tx_hash']})"
+            )
+
+        if lending_actions_result["last_status"] == "error":
+            st.error(lending_actions_result["last_error"])
+
+    st.divider()
     st.info(
-        "Nhánh MetaMask integration hiện đang ở chế độ read-only. "
-        "Các nút giao dịch backend-signer cũ được tạm ẩn để tránh nhầm lẫn. "
-        "Bước tiếp theo sẽ thêm Deposit/Borrow/Repay/Withdraw do MetaMask ký trực tiếp."
+        "Sau mỗi giao dịch MetaMask, hãy chờ transaction được xác nhận trên Sepolia "
+        "rồi bấm Refresh data để đọc lại trạng thái on-chain mới nhất."
     )
     st.stop()
 
