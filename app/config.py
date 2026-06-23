@@ -45,17 +45,39 @@ def load_abi(path: Path):
     raise ValueError(f"Invalid ABI format: {path}")
 
 
+def get_secret(name: str, default=None):
+    """
+    Read config value from:
+    1. Environment variables / local .env
+    2. Streamlit secrets on Streamlit Cloud
+
+    This keeps the app working both locally and on Streamlit Cloud.
+    """
+    value = os.getenv(name)
+    if value:
+        return value
+
+    try:
+        import streamlit as st
+
+        if name in st.secrets:
+            return st.secrets[name]
+    except Exception:
+        pass
+
+    return default
+
+
 def get_config():
     """Load all app configuration needed for Streamlit/web3."""
     load_dotenv(ENV_PATH)
 
-    rpc_url = os.getenv("SEPOLIA_RPC_URL")
-    private_key = os.getenv("PRIVATE_KEY")
+    rpc_url = get_secret("SEPOLIA_RPC_URL")
+    private_key = get_secret("PRIVATE_KEY")
 
     if not rpc_url:
         raise ValueError(
-            "Missing SEPOLIA_RPC_URL. Set it in .env for local development "
-            "or in Streamlit Cloud Secrets for deployment."
+            "Missing SEPOLIA_RPC_URL. Add it to local .env or Streamlit Cloud Secrets."
         )
 
     addresses = load_json(CONTRACT_ADDRESSES_PATH)
@@ -100,3 +122,5 @@ if __name__ == "__main__":
     print("ETH/USD Price Feed:", config["price_feed_address"])
     print("LendingPool ABI length:", len(config["lending_pool_abi"]))
     print("MockUSDToken ABI length:", len(config["mock_usd_abi"]))
+    print("RPC URL loaded:", bool(config["rpc_url"]))
+    print("Private key loaded:", bool(config["private_key"]))
