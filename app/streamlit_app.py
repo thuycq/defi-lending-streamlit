@@ -13,6 +13,7 @@ try:
         repay_mock_usd,
         withdraw_collateral,
     )
+    from app.metamask_component import render_metamask_connect
 except ModuleNotFoundError:
     from blockchain import (
         read_basic_status,
@@ -24,6 +25,7 @@ except ModuleNotFoundError:
         repay_mock_usd,
         withdraw_collateral,
     )
+    from metamask_component import render_metamask_connect
 
 SEPOLIA_ETHERSCAN_BASE = "https://sepolia.etherscan.io"
 
@@ -99,6 +101,28 @@ with st.sidebar:
     st.write("Token vay: MockUSD")
     st.warning("Demo dùng testnet, không dùng tiền thật.")
 
+    st.divider()
+    st.header("Kết nối ví")
+    wallet_state = render_metamask_connect()
+
+    metamask_wallet = wallet_state.get("wallet_address", "")
+    metamask_chain_id = wallet_state.get("chain_id", "")
+    metamask_connected = (
+        wallet_state.get("status") == "connected"
+        and bool(metamask_wallet)
+    )
+    metamask_on_sepolia = metamask_chain_id == "0xaa36a7"
+
+    if metamask_connected and metamask_on_sepolia:
+        st.success("MetaMask đã kết nối Sepolia.")
+    elif metamask_connected and not metamask_on_sepolia:
+        st.warning(
+            f"MetaMask đang ở chain_id = {metamask_chain_id}. "
+            "Vui lòng chuyển sang Sepolia."
+        )
+    else:
+        st.info("Có thể kết nối MetaMask để đọc trạng thái ví của người dùng.")
+
 
 try:
     status = read_basic_status()
@@ -107,10 +131,21 @@ try:
         st.divider()
         st.header("Wallet cần đọc")
 
+        default_wallet = status["deployer"]
+
+        if metamask_connected and metamask_on_sepolia:
+            default_wallet = metamask_wallet
+            st.caption("Dashboard đang đọc ví MetaMask đã kết nối.")
+        else:
+            st.caption("Chưa kết nối MetaMask Sepolia. Dashboard đang đọc ví demo mặc định.")
+
         wallet_input = st.text_input(
-            "Nhập wallet address",
-            value=status["deployer"],
-            help="Có thể nhập ví khác để xem trạng thái. Nếu demo bình thường, giữ nguyên ví Deployer.",
+            "Wallet address",
+            value=default_wallet,
+            help=(
+                "Nếu MetaMask đã kết nối Sepolia, ô này sẽ dùng ví MetaMask. "
+                "Bạn vẫn có thể nhập ví khác để xem trạng thái read-only."
+            ),
         )
 
         refresh = st.button("Refresh data")
@@ -256,7 +291,14 @@ try:
         st.info("Ví hiện chưa có dư nợ.")
 
     st.divider()
+    st.info(
+        "Nhánh MetaMask integration hiện đang ở chế độ read-only. "
+        "Các nút giao dịch backend-signer cũ được tạm ẩn để tránh nhầm lẫn. "
+        "Bước tiếp theo sẽ thêm Deposit/Borrow/Repay/Withdraw do MetaMask ký trực tiếp."
+    )
+    st.stop()
 
+    st.divider()
     st.subheader("5. Deposit collateral")
 
     st.write(
