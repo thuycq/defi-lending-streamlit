@@ -1,0 +1,10 @@
+{
+  "network": "sepolia",
+  "chainId": 11155111,
+  "deployer": "0x09428D10764503E9158374e556398b409d37381E",
+  "contracts": {
+    "MockUSDToken": "0x7e8D9056BeA20ceF8abA9009660128E6657434C6",
+    "LendingPool": "0x07d306Fa4941e7f6734A2bFAD8c03279762032a4",
+    "ETH_USD_PriceFeed": "0x694AA1769357215DE4FAC081bf1f309aDC325306"
+  }
+}

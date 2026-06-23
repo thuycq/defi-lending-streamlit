@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Streamlit secrets
+.streamlit/secrets.toml
+
+# Environment variables
+.env
+
+# Private keys
+private_key.txt
+*.key
+
+# OS / IDE
+.DS_Store
+.vscode/
+
+# Hardhat
+node_modules/
+artifacts/
+cache/
+coverage/
+
+# npm
+package-lock.json
